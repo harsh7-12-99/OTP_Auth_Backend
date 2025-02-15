@@ -1,4 +1,23 @@
+require('dotenv').config();
 const express = require("express");
+const mysql = require('mysql2');
+
+// const connection = mysql.createConnection({
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME,
+//     port: process.env.DB_PORT
+// });
+
+const connection = mysql.createConnection({
+  host: '44.211.172.151',
+  user: 'root',
+  password: 'Harsh@1999',
+  database: 'test_db',
+  connectTimeout: 10000, // Increase timeout to handle network delays
+});
+
 const app = express();
 const {
   getAllUsers,
@@ -42,3 +61,5 @@ app.post("/", (req, res) => {
 app.listen(3000, () => {
   console.log("Server started at port 3000");
 });
+
+module.exports = connection;

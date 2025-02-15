@@ -1,5 +1,7 @@
 require('dotenv').config();
 const mysql = require("mysql2");
+const redis = require("redis");
+
 
 const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -21,4 +23,13 @@ db.getConnection((err, connection) => {
   connection.release(); // Release connection after testing
 });
 
-module.exports = db;
+const redisClient = redis.createClient({
+  host: "44.211.172.151", // Redis server host
+  port: 6379, // Default Redis port
+});
+
+
+redisClient.on("connect", () => console.log("✅ Redis connected"));
+redisClient.on("error", (err) => console.error("❌ Redis Error:", err));
+
+module.exports = { db, redisClient };

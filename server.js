@@ -1,5 +1,7 @@
 const express = require("express");
 const mysql = require("mysql2");
+const { sendOTP, verifyOTP } = require("./controller/otpController");
+
 
 const app = express();
 const {
@@ -46,6 +48,10 @@ app.post("/", (req, res) => {
     });
   });
 });
+
+app.post("/send-otp", sendOTP); // Send OTP API
+
+
 app.listen(3000, () => {
   console.log("Server started at port 3000");
 });

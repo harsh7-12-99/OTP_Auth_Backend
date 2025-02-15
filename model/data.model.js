@@ -1,7 +1,7 @@
-const db = require("../config/db");
+const {db} = require("../config/db");
 
 function getAllUsers(callback) {
-  db.query("SELECT * FROM users", (err, results) => {
+  db.query("SELECT * FROM users",(err, results) => {
     if (err) return callback(err, null);
     return callback(null, results);
   });

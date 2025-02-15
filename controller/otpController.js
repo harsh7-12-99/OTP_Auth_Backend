@@ -6,6 +6,22 @@ const generateOTP = () => {
   return Math.floor(1000 + Math.random() * 9000); // Ensures 4 digits
 };
 
+async function storeOtp(username, otp) {
+    try {
+        // Ensure Redis is connected before executing commands
+        if (!redisClient.isOpen) {
+          await redisClient.connect();
+        }
+    
+        // Store OTP with a 5-minute expiry (300 seconds)
+        await redisClient.set(username, otp, {
+            EX: 300, 
+          });        console.log(`✅ OTP stored for ${username}`);
+      } catch (error) {
+        console.error(`❌ Error storing OTP for ${username}:`, error);
+      }
+  }
+
 // API to generate and store OTP in Redis
 const sendOTP = (req, res) => {
   const { username } = req.body;
@@ -15,17 +31,10 @@ const sendOTP = (req, res) => {
   }
 
   const otp = generateOTP();
-  const key = `otp:${username}`;
-  const ttl = 300; // 5 minutes expiry
 
-  redisClient.setEx(key, ttl, otp, (err, reply) => {
-    if (err) {
-      console.error("❌ Redis Set Error:", err);
-      return res.status(500).json({ error: "Failed to store OTP" });
-    }
-    console.log(`✅ OTP ${otp} stored for ${username}`);
-    res.json({ message: "OTP sent successfully", otp }); // Remove OTP in prod
-  });
+  storeOtp(username,otp)
+
+  return res.status(200).json({ message: "OTP sent successfully", otp });
 };
 
 // API to verify OTP

@@ -24,12 +24,19 @@ db.getConnection((err, connection) => {
 });
 
 const redisClient = redis.createClient({
-  host: "44.211.172.151", // Redis server host
-  port: 6379, // Default Redis port
+  socket: {
+    host: '44.211.172.151', // Update with your Redis server IP
+    port: 6379
+  }
 });
 
-
-redisClient.on("connect", () => console.log("✅ Redis connected"));
-redisClient.on("error", (err) => console.error("❌ Redis Error:", err));
+(async () => {
+  try {
+    await redisClient.connect();
+    console.log('✅ Connected to Redis');
+  } catch (err) {
+    console.error('❌ Redis Connection Error:', err);
+  }
+})();
 
 module.exports = { db, redisClient };

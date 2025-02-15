@@ -6,10 +6,10 @@ function getAllUsers(callback) {
     return callback(null, results);
   });
 }
-function checkUserExists(name, email, callback) {
+function checkUserExists(username, email, callback) {
   db.query(
-    "SELECT COUNT(*) as count FROM users WHERE name = ? AND email = ?",
-    [name, email],
+    "SELECT COUNT(*) as count FROM users WHERE username = ? AND email = ?",
+    [username, email],
     (err, results) => {
       if (err) return callback(err, null);
       return callback(null, results[0].count > 0);
@@ -17,10 +17,10 @@ function checkUserExists(name, email, callback) {
   );
 }
 
-function addNewUser(name, email, password, callback) {
+function addNewUser(username, email, password, callback) {
   db.query(
-    "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-    [name, email, password],
+    "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+    [username, email, password],
     callback
   );
 }

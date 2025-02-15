@@ -1,4 +1,5 @@
 const { redisClient } = require("../config/db");
+const dataController = require("../controller/data.controller");
 
 
 // Function to generate a 4-digit OTP
@@ -24,46 +25,57 @@ async function storeOtp(username, otp) {
 
 // API to generate and store OTP in Redis
 const sendOTP = (req, res) => {
-  const { username } = req.body;
+  const { email } = req.body;
 
-  if (!username) {
+  if (!email) {
     return res.status(400).json({ error: "Username is required" });
   }
 
   const otp = generateOTP();
 
-  storeOtp(username,otp)
+  storeOtp(email,otp)
 
   return res.status(200).json({ message: "OTP sent successfully", otp });
 };
 
-// API to verify OTP
-const verifyOTP = (req, res) => {
-  const { username, otp } = req.body;
 
-  if (!username || !otp) {
-    return res.status(400).json({ error: "Username and OTP are required" });
+const verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: "Email and OTP are required" });
   }
 
-  const key = `otp:${username}`;
-
-  redisClient.get(key, (err, storedOTP) => {
-    if (err) {
-      console.error("❌ Redis Get Error:", err);
-      return res.status(500).json({ error: "Failed to verify OTP" });
+  try {
+    // Ensure Redis client is connected
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
     }
+
+    // Retrieve OTP from Redis
+    const storedOTP = await redisClient.get(email);
 
     if (!storedOTP) {
       return res.status(400).json({ error: "OTP expired or not found" });
     }
 
     if (storedOTP === otp) {
-      redisClient.del(key); // Delete OTP after successful verification
+      // Delete OTP after successful verification
+      await redisClient.del(email);
+
+      // Register the user in the database
+      await dataController.addUserController(req, res);
+
       return res.json({ message: "OTP verified successfully" });
     } else {
       return res.status(400).json({ error: "Invalid OTP" });
     }
-  });
+  } catch (err) {
+    console.error("❌ Redis Get Error:", err);
+    return res.status(500).json({ error: "Failed to verify OTP" });
+  }
 };
+
+
 
 module.exports = { sendOTP, verifyOTP };

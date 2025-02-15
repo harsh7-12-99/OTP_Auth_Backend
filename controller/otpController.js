@@ -1,5 +1,6 @@
 const { redisClient } = require("../config/db");
 const dataController = require("../controller/data.controller");
+const sendEmail = require("../controller/sendMail.controller")
 
 
 // Function to generate a 4-digit OTP
@@ -31,11 +32,19 @@ const sendOTP = (req, res) => {
     return res.status(400).json({ error: "Username is required" });
   }
 
+  dataController.checkUserExists(req.body,(err,result)=> {if(result){return res.status(400).json({message:"user exists"})}})
+
   const otp = generateOTP();
 
-  storeOtp(email,otp)
+  // sending the email
+  
 
-  return res.status(200).json({ message: "OTP sent successfully", otp });
+  if(sendEmail(email,"OTP",String(otp)))
+   { storeOtp(email,otp); }
+
+
+
+  return res.status(200).json({ message: "OTP sent successfully" });
 };
 
 

@@ -9,7 +9,7 @@ function getAllUsers(callback) {
 function checkUserExists(objReqBodyData, callback) {
   db.query(
     "SELECT COUNT(*) as count FROM users WHERE username = ? AND email = ?",
-    [objReqBodyData.username, objReqBodyData.email],
+    [objReqBodyData.email],
     (err, results) => {
       if (err) return callback(err, null);
       return callback(null, results[0].count > 0);

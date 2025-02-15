@@ -44,4 +44,5 @@ const addUserController = (req, res) => {
 module.exports = {
   getUserController,
   addUserController,
+  checkUserExists,
 };

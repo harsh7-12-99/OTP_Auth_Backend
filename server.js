@@ -25,7 +25,7 @@ app.post("/", (req, res) => {
     return res.status(400).json({ message: "Please enter all the details" });
   }
   checkUserExists(data.username, data.email, (err, exists) => {
-    if (err) return res.status(500).json({ error: "Database error" });
+    if (err) return res.status(500).json({ error: "Database error due to exists check" });
 
     if (exists) {
       return res.status(400).json({ error: "User already exists" });
@@ -33,7 +33,7 @@ app.post("/", (req, res) => {
 
     addNewUser(data.username, data.email, data.password, (err, newUser) => {
       if (err) {
-        return res.status(500).json({ error: "Database error" });
+        return res.status(500).json({ error: "Database error due to adding new user" });
       }
       return res
         .status(200)

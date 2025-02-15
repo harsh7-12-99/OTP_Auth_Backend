@@ -11,7 +11,7 @@ function checkUserExists(username, email, callback) {
     "SELECT COUNT(*) as count FROM users WHERE username = ? AND email = ?",
     [username, email],
     (err, results) => {
-      if (err) return callback(err, null);
+      if (err)return callback(err, null);
       return callback(null, results[0].count > 0);
     }
   );

@@ -1,4 +1,5 @@
 const { db } = require("../config/db");
+const bcrypt = require("bcrypt");
 
 function getAllUsers(callback) {
   db.query("SELECT * FROM users", (err, results) => {
@@ -8,7 +9,7 @@ function getAllUsers(callback) {
 }
 function checkUserExists(objReqBodyData, callback) {
   db.query(
-    "SELECT COUNT(*) as count FROM users WHERE username = ? AND email = ?",
+    "SELECT COUNT(*) as count FROM users WHERE email = ?",
     [objReqBodyData.email],
     (err, results) => {
       if (err) return callback(err, null);
@@ -17,12 +18,26 @@ function checkUserExists(objReqBodyData, callback) {
   );
 }
 
-function addNewUser(objReqBodyData, callback) {
-  db.query(
-    "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-    [objReqBodyData.username, objReqBodyData.email, objReqBodyData.password],
-    callback
-  );
+async function addNewUser(objReqBodyData, callback) {
+  try {
+    const { password } = objReqBodyData;
+    const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    db.query(
+      "INSERT INTO users (username, email, password, phone ) VALUES (?, ?, ?, ?)",
+      [
+        objReqBodyData.username,
+        objReqBodyData.email,
+        hashedPassword,
+        objReqBodyData.phone,
+      ],
+      callback
+    );
+  } catch (err) {
+    callback(err);
+  }
 }
 
 module.exports = {

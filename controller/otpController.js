@@ -1,7 +1,7 @@
 const { redisClient } = require("../config/db");
 const dataController = require("../controller/data.controller");
-const sendEmail = require("../controller/sendMail.controller")
-
+const { addNewUser } = require("../model/data.model");
+const sendEmail = require("../controller/sendMail.controller");
 
 // Function to generate a 4-digit OTP
 const generateOTP = () => {
@@ -9,44 +9,57 @@ const generateOTP = () => {
 };
 
 async function storeOtp(username, otp) {
-    try {
-        // Ensure Redis is connected before executing commands
-        if (!redisClient.isOpen) {
-          await redisClient.connect();
-        }
-    
-        // Store OTP with a 5-minute expiry (300 seconds)
-        await redisClient.set(username, otp, {
-            EX: 300, 
-          });        console.log(`✅ OTP stored for ${username}`);
-      } catch (error) {
-        console.error(`❌ Error storing OTP for ${username}:`, error);
-      }
+  try {
+    // Ensure Redis is connected before executing commands
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
+    }
+
+    // Store OTP with a 5-minute expiry (300 seconds)
+    await redisClient.set(username, otp, {
+      EX: 300,
+    });
+  } catch (error) {
+    console.error(`❌ Error storing OTP for ${username}:`, error);
   }
+}
 
 // API to generate and store OTP in Redis
-const sendOTP = (req, res) => {
+const sendOTP = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ error: "Username is required" });
+    return res.status(400).json({ error: "Email is required" });
   }
 
-  dataController.checkUserExists(req.body,(err,result)=> {if(result){return res.status(400).json({message:"user exists"})}})
+  // Wait for result from checkUserExists
+  try {
+    const userExists = await new Promise((resolve, reject) => {
+      dataController.checkUserExists(req.body, (err, result) => {
+        if (err) return reject(err);
+        return resolve(result);
+      });
+    });
 
-  const otp = generateOTP();
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-  // sending the email
-  
+    const otp = generateOTP();
 
-  if(sendEmail(email,"OTP",String(otp)))
-   { storeOtp(email,otp); }
+    const emailSent = await sendEmail(email, "OTP", String(otp));
 
-
-
-  return res.status(200).json({ message: "OTP sent successfully" });
+    if (emailSent) {
+      await storeOtp(email, otp);
+      return res.status(200).json({ message: "OTP sent successfully" });
+    } else {
+      return res.status(500).json({ error: "Failed to send email" });
+    }
+  } catch (error) {
+    console.error("❌ sendOTP error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
 };
-
 
 const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
@@ -56,12 +69,10 @@ const verifyOTP = async (req, res) => {
   }
 
   try {
-    // Ensure Redis client is connected
     if (!redisClient.isOpen) {
       await redisClient.connect();
     }
 
-    // Retrieve OTP from Redis
     const storedOTP = await redisClient.get(email);
 
     if (!storedOTP) {
@@ -69,13 +80,18 @@ const verifyOTP = async (req, res) => {
     }
 
     if (storedOTP === otp) {
-      // Delete OTP after successful verification
       await redisClient.del(email);
 
-      // Register the user in the database
-      await dataController.addUserController(req, res);
-
-      return res.json({ message: "OTP verified successfully" });
+      addNewUser(req.body, (err, newUser) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({ error: "Database error while adding user" });
+        }
+        return res
+          .status(200)
+          .json({ message: "OTP verified and user added", newUser });
+      });
     } else {
       return res.status(400).json({ error: "Invalid OTP" });
     }
@@ -84,7 +100,5 @@ const verifyOTP = async (req, res) => {
     return res.status(500).json({ error: "Failed to verify OTP" });
   }
 };
-
-
 
 module.exports = { sendOTP, verifyOTP };
